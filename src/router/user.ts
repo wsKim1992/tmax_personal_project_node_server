@@ -22,20 +22,17 @@ RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:Nex
     })(req,res,next)
 })
 
-RouterForUserInfo.post('/signup',isNotLoggedIn,async(req:Request,res:Response,next:NextFunction)=>{
-    const {email,password} = req.body;
+RouterForUserInfo.post('/checkEmailExists',isNotLoggedIn,async(req:Request,res:Response,next:NextFunction)=>{
+    const {email} = req.body;
     try{
-        let hashedPwd = await bcrypt.hash(password,parseInt(`${process.env.GEN_SALT_COUNT}`));
-        //console.log(hashedPwd)
         const exists = await db.user.findOne({
             where:{email:email},
             attributes:["email","userId"]
         })
         if(exists){
-            res.status(200).json({message:'user 정보가 있습니다.'})
+            res.status(200).json({message:'user 정보가 있습니다.',flag:false})
         }else{
-            await db.user.create({email,password:hashedPwd});
-            return res.status(200).json({message:hashedPwd})
+            return res.status(200).json({message:'email 유일성 확인!',flag:true})
         }
     }catch(err){
         console.error(err);

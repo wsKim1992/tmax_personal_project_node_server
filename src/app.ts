@@ -9,8 +9,16 @@ import {CustomError} from "./type_doc/error";
 import {sequelize} from "./models";
 import passport from 'passport';
 import passportConfig from './passport/index';
+import cors from 'cors';
 
 dotenv.config();
+
+const whiteList = ['http://localhost:3000','http://localhost:3001']
+
+const corsOption:cors.CorsOptions = {
+    origin:whiteList,
+    credentials:true,
+}
 
 const app = express();
 passportConfig();
@@ -26,12 +34,13 @@ const sessionMiddleware = session({
 })
 
 app.set('port',process.env.PORT||9993);
+app.use(cors(corsOption));
 app.set('view engine','html');
 
-app.use('/static',express.static(path.join(__dirname,'static')));
-
 app.use(express.json());
-app.use(express.urlencoded({extended:false}));
+app.use(express.urlencoded({
+  extended: true
+}))
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(sessionMiddleware);
@@ -43,7 +52,8 @@ app.use(passport.session());
     res.status(200).sendFile(path.join(__dirname,'./public/auth.html'));
 }) */
 //app.use('/temp',tempRouter);
-app.use('/user',RouterForUserInfo)
+app.use('/static',express.static(path.join(__dirname,'static')));
+app.use('/auth',RouterForUserInfo);
 
 app.use((req:Request,res:Response,next:NextFunction)=>{
     const error = new Error(`${req.method} ${req.url} 라우터가 없습니다`)! as CustomError;
