@@ -1,8 +1,17 @@
 import {Router,Request,Response, NextFunction} from 'express';
 import db from '../models';
 import bcrypt from 'bcrypt';
-import {isLoggedIn,isNotLoggedIn} from './middleware';
+import {isLoggedIn,isNotLoggedIn,checkBeforeSendEmail} from './middleware';
+import sendMail from './util/sendEmail';
 import passport from 'passport';
+import {sendMailParams} from '../type_doc/nodemailer_types';
+import createRandomBytes from './util/generateRandomByte'
+
+declare module 'express-session' {
+    export interface SessionData {
+      email?:string;
+    }
+  }
 
 const RouterForUserInfo = Router();
 
@@ -41,5 +50,27 @@ RouterForUserInfo.post('/checkEmailExists',isNotLoggedIn,async(req:Request,res:R
 
 })
 
+RouterForUserInfo.post('/sendEmail',isNotLoggedIn,checkBeforeSendEmail,async(req:Request,res:Response)=>{
+    try{
+        const {email} = req.body;
+        const code = await createRandomBytes(12);
+        const sendMailParam:sendMailParams = {
+            to:email,
+            subject:"이메일 인증번호 전송",
+            code
+        } 
+        await sendMail(sendMailParam);
+        req.session.email=code;
+        setTimeout(()=>{
+            const {session}=req;
+            delete session.email;
+        },6000*3);
+        res.status(200).json({flag:true,message:`${email}로 인증 메일 보냈습니다. 코드를 입력해 주세요!`})
+    }catch(err:any){
+        const errObj = JSON.parse(err.message);
+        console.log(errObj);
+        res.status(500).json({message:errObj.message});
+    }
+});
 
 export default RouterForUserInfo;

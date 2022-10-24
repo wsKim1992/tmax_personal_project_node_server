@@ -37,10 +37,10 @@ app.set('port',process.env.PORT||9993);
 app.use(cors(corsOption));
 app.set('view engine','html');
 
-app.use(express.json());
 app.use(express.urlencoded({
-  extended: true
+  extended: false
 }))
+app.use(express.json());
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(sessionMiddleware);
