@@ -18,22 +18,16 @@ export const checkBeforeSendEmail = async(req:Request,res:Response,next:NextFunc
         const checkUserExistsInDB = await user.findOne({where:{email},attributes:["email"]});
         if(checkUserExistsInDB){
             let emailErrorObj= {flag:false,message:'이미 존재하는 이메일 입니다!'}
-            res.status(200).json(emailErrorObj);
+            res.status(400).json(emailErrorObj);
         }else{
             //console.log(req.session.email)
-            if(req.session?.email){
-                let emailErrorObj= {flag:true,message:'email 을 입력해주세요!'};
-                res.status(200).json(emailErrorObj);
-            }else{
-                next();
-            }
+            next();
         }
 
     }else{
         let emailErrorObj = {flag:false,message:'이메일 형식을 지켜서 입력해 주세요!'};
-        res.status(200).json(emailErrorObj);
+        res.status(400).json(emailErrorObj);
     }
-
 }
 
 export const isLoggedIn = (req:Request,res:Response,next:NextFunction)=>{

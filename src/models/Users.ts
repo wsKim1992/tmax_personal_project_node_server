@@ -22,6 +22,10 @@ export default function(sequelize:Sequelize):typeof UserModel{
     password:{
       type:DataTypes.STRING(256),
       allowNull:false,
+    },
+    username:{
+      type:DataTypes.STRING(128),
+      allowNull:false,
     }
   },{
     sequelize,

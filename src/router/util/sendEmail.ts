@@ -6,8 +6,6 @@ dotenv.config();
 
 
 const sendMail = async(param:sendMailParams):Promise<void>=>{
-    console.log(`auth email : ${process.env.AUTH_EMAIL_ADDR}`);
-    console.log(`auth pass : ${process.env.AUTH_EMAIL_PWD}`)
     const transporter = nodemailer.createTransport({
         service: "gmail",
         port: Number(process.env.AUTH_EMAIL_PORT),
@@ -31,7 +29,7 @@ const sendMail = async(param:sendMailParams):Promise<void>=>{
   }catch(err){
     const message = "메일 전송 실패!"
     console.error(err);
-    throw new Error(JSON.stringify({message}));
+    throw new Error(message);
   }
 }
 
