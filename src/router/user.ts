@@ -1,35 +1,75 @@
 import {Router,Request,Response, NextFunction} from 'express';
 import db from '../models';
-import {isLoggedIn,isNotLoggedIn,checkBeforeSendEmail} from './middleware';
+import {isLoggedIn,isNotLoggedIn,checkBeforeSendEmail,checkProperUser} from './middleware';
 import sendMail from './util/sendEmail';
 import passport from 'passport';
 import bcrypt from 'bcrypt';
 import {sendMailParams} from '../type_doc/nodemailer_types';
 import createRandomBytes from './util/generateRandomByte'
+import jwt from 'jsonwebtoken';
+import {UserModel} from '../models/Users'
 
 declare module 'express-session' {
     export interface SessionData {
       email?:string;
     }
-  }
+}
 
 const RouterForUserInfo = Router();
 
-RouterForUserInfo.get('/getUser',(req:Request,res:Response)=>{
-    return res.status(200).json({message:"hello"});
+RouterForUserInfo.post('/check_session',isLoggedIn,checkProperUser,(req:Request,res:Response,next)=>{
+    res.status(200).json({flag:true,message:'사용자 인증 완료!'});
 })
 
 RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:NextFunction)=>{
-    passport.authenticate('local',(error:Error,user:typeof db.user|boolean,info:any)=>{
-        if(!user||error){
-            return res.status(200).json({errFlag:true,message:info.message})
+    passport.authenticate('local',(error:Error|null,user:UserModel|null,info:any)=>{
+        if(!!!user||error){
+            console.error(error);
+            return res.status(500).json({message:info.message})
         }
-        return req.login(user,loginError=>{
-            if(loginError){return next(loginError);}
-            return res.status(200).json({errFlag:true,message:'로그인 성공!'})
-        })
-    })(req,res,next)
-})
+        if(user as UserModel){
+            return req.login(user,async (loginError)=>{
+                if(loginError){
+                    console.error(loginError);
+                    return res.status(500).json({message:'로그인 오류 발생!'});
+                }else{
+                    try{
+                        const token = await jwt.sign({id:user.userId},`${process.env.JWT_TOKEN}`,{
+                            algorithm:'HS256',
+                            expiresIn:'7d',
+                            issuer:'wooseok_kim3'
+                        })
+                        const userInfo = {id:user.userId,email:user.email};
+                        return res.status(200).json({flag:true,token,userInfo,message:'로그인 성공!'})
+                    }catch(err){
+                        console.error(err);
+                        return next(err);
+                    }
+                }
+            })
+        }
+    })(req,res,next);
+});
+
+RouterForUserInfo.post('/logout',isLoggedIn,async(req:Request,res:Response)=>{
+    req.logout((err)=>{
+        if(err){
+            console.error(err);
+            return res.status(500).json({message:'로그아웃 오류 발생!'})
+        }else{
+
+            req.session.destroy((err)=>{
+                if(err){
+                    console.error(err);
+                    return res.status(500).json({message:'로그아웃 오류 발생!'})
+                }
+                return res.status(200).json({message:'로그아웃 성공'})
+            });
+        }
+    });
+    
+});
+
 
 RouterForUserInfo.post('/checkEmailExists',isNotLoggedIn,async(req:Request,res:Response,next:NextFunction)=>{
     const {email} = req.body;
@@ -47,7 +87,6 @@ RouterForUserInfo.post('/checkEmailExists',isNotLoggedIn,async(req:Request,res:R
         console.error(err);
         return next(err)
     }
-
 })
 
 RouterForUserInfo.post('/sendEmail',isNotLoggedIn,checkBeforeSendEmail,async(req:Request,res:Response)=>{
@@ -109,6 +148,7 @@ RouterForUserInfo.post('/signUpUser',isNotLoggedIn,checkBeforeSendEmail,async(re
         console.log(email);
         console.log(username);
         console.log(password);
+        console.log(process.env.GEN_SALT_COUNT);
         const newPassword = await bcrypt.hash(password,Number(process.env.GEN_SALT_COUNT));
         const user = await db.user.create({password:newPassword,email,username});
         console.log(user);
@@ -117,7 +157,6 @@ RouterForUserInfo.post('/signUpUser',isNotLoggedIn,checkBeforeSendEmail,async(re
         console.error(err);
         res.status(500).json({message:'db 추가중에 오류가 발생.'});
     }
-    
 });
 
 export default RouterForUserInfo;

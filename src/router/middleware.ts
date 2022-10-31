@@ -1,12 +1,61 @@
 import {Request,Response,NextFunction} from 'express';
 import db from '../models';
-import dotenv from 'dotenv';
 import 'express-session';
+import jwt,{TokenExpiredError} from 'jsonwebtoken';
+import {UserModel} from '../models/Users'
 
 declare module 'express-session' {
-  export interface SessionData {
-    email?:string;
+    export interface SessionData {
+      email?: string;
+    }
   }
+  
+  declare module 'express' {
+    export interface Request {
+      decode?: string | jwt.JwtPayload;
+    }
+  }
+  
+  declare global {
+    namespace Express{
+      export interface User extends UserModel{}
+    }
+  }
+
+export const checkProperUser = async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        console.log(req.headers.authorization);
+        const verifyJWTResult = jwt.verify(req.headers.authorization as string,`${process.env.JWT_SECRET}`,{
+            algorithms:['HS256']
+        });
+        req.decode = verifyJWTResult;
+
+        const {email} = req.body;
+        const userInfoExistCheck = await db.user.findOne({where:{email},attributes:["userId"]});
+        if(userInfoExistCheck){
+            const {userId} = userInfoExistCheck;
+            if(req.user){
+                if(req.user?.userId===userId){
+                    next();
+                }else{
+                    throw new Error('허용 되지 않는 사용자');    
+                }
+            }else{
+                throw new Error('허용 되지 않는 사용자');    
+            }
+        }else{
+            throw new Error('user가 존재하지 않음!');
+        }
+    }catch(err: unknown){
+        console.error(err);
+        if(err instanceof TokenExpiredError){
+            return res.status(401).json({message:'허용 되지 않는 사용자!'});
+        }else if(err instanceof Error){
+            return res.status(500).json({
+                message:err.message?err.message:'인증 프로세스 오류!'
+            });
+        }
+    }
 }
 
 export const checkBeforeSendEmail = async(req:Request,res:Response,next:NextFunction)=>{
@@ -39,6 +88,7 @@ export const isLoggedIn = (req:Request,res:Response,next:NextFunction)=>{
 }
 
 export const isNotLoggedIn = (req:Request,res:Response,next:NextFunction)=>{
+    console.log("isNotLoggedIn");
     if(!req.isAuthenticated()){
         next();
     }else{

@@ -27,7 +27,7 @@ const sessionMiddleware = session({
     saveUninitialized:false,
     secret:`${process.env.COOKIE_SECRET}`,
     cookie:{
-        maxAge:3600*6,
+        maxAge:3600*6*1000,
         httpOnly:true,
         secure:false,//https 일 때만..
     }
@@ -48,18 +48,14 @@ app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-/* app.get('/',(req:Request,res:Response)=>{
-    res.status(200).sendFile(path.join(__dirname,'./public/auth.html'));
-}) */
-//app.use('/temp',tempRouter);
 app.use('/static',express.static(path.join(__dirname,'static')));
 app.use('/auth',RouterForUserInfo);
 
-app.use((req:Request,res:Response,next:NextFunction)=>{
+/* app.use((req:Request,res:Response,next:NextFunction)=>{
     const error = new Error(`${req.method} ${req.url} 라우터가 없습니다`)! as CustomError;
     error.status=400;
     next(error);
-})
+}) */
 
 
 app.use((err:CustomError,req:Request,res:Response,next:NextFunction)=>{
