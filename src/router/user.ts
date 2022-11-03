@@ -18,7 +18,10 @@ declare module 'express-session' {
 const RouterForUserInfo = Router();
 
 RouterForUserInfo.post('/check_session',isLoggedIn,checkProperUser,(req:Request,res:Response,next)=>{
-    res.status(200).json({flag:true,message:'사용자 인증 완료!'});
+    const userData=req.userData;
+    console.log(userData)
+    delete req.userData;
+    res.status(200).json({flag:true,message:'사용자 인증 완료!',data:{...userData}});
 })
 
 RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:NextFunction)=>{
@@ -34,13 +37,13 @@ RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:Nex
                     return res.status(500).json({message:'로그인 오류 발생!'});
                 }else{
                     try{
-                        const token = await jwt.sign({id:user.userId},`${process.env.JWT_TOKEN}`,{
+                        const token = await jwt.sign({userId:user.userId,email:user.email},`${process.env.JWT_TOKEN}`,{
                             algorithm:'HS256',
                             expiresIn:'7d',
                             issuer:'wooseok_kim3'
                         })
-                        const userInfo = {id:user.userId,email:user.email};
-                        return res.status(200).json({flag:true,token,userInfo,message:'로그인 성공!'})
+                        //const userInfo = {id:user.userId,email:user.email};
+                        return res.status(200).json({flag:true,token,message:'로그인 성공!'})
                     }catch(err){
                         console.error(err);
                         return next(err);
@@ -145,13 +148,8 @@ RouterForUserInfo.post('/compareCode',isNotLoggedIn,(req:Request,res:Response,ne
 RouterForUserInfo.post('/signUpUser',isNotLoggedIn,checkBeforeSendEmail,async(req:Request,res:Response)=>{
     try{
         const {password,email,username} = req.body;
-        console.log(email);
-        console.log(username);
-        console.log(password);
-        console.log(process.env.GEN_SALT_COUNT);
         const newPassword = await bcrypt.hash(password,Number(process.env.GEN_SALT_COUNT));
         const user = await db.user.create({password:newPassword,email,username});
-        console.log(user);
         res.status(200).json({flag:true,message:'회원가입에 성공했습니다. 로그인 페이지로 이동하겠습니다.'})
     }catch(err){
         console.error(err);

@@ -1,10 +1,9 @@
-import express, {Request,Response,NextFunction, application} from 'express';
+import express, {Request,Response,NextFunction} from 'express';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import dotenv from 'dotenv';
 import RouterForUserInfo from "./router/user";
-import tempRouter from "./router/temp";
 import {CustomError} from "./type_doc/error";
 import {sequelize} from "./models";
 import passport from 'passport';
@@ -51,11 +50,11 @@ app.use(passport.session());
 app.use('/static',express.static(path.join(__dirname,'static')));
 app.use('/auth',RouterForUserInfo);
 
-/* app.use((req:Request,res:Response,next:NextFunction)=>{
+app.use((req:Request,res:Response,next:NextFunction)=>{
     const error = new Error(`${req.method} ${req.url} 라우터가 없습니다`)! as CustomError;
     error.status=400;
     next(error);
-}) */
+})
 
 
 app.use((err:CustomError,req:Request,res:Response,next:NextFunction)=>{

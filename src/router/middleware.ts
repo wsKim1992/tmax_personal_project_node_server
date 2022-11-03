@@ -3,7 +3,7 @@ import db from '../models';
 import 'express-session';
 import jwt,{TokenExpiredError} from 'jsonwebtoken';
 import {UserModel} from '../models/Users'
-
+import {UserTypeForSession} from '../type_doc/model_type'
 declare module 'express-session' {
     export interface SessionData {
       email?: string;
@@ -13,6 +13,7 @@ declare module 'express-session' {
   declare module 'express' {
     export interface Request {
       decode?: string | jwt.JwtPayload;
+      userData?:UserTypeForSession
     }
   }
   
@@ -24,25 +25,24 @@ declare module 'express-session' {
 
 export const checkProperUser = async(req:Request,res:Response,next:NextFunction)=>{
     try{
-        console.log(req.headers.authorization);
+        if(!req.user){
+            throw new Error('허용 되지 않는 사용자');
+        }
         const verifyJWTResult = jwt.verify(req.headers.authorization as string,`${process.env.JWT_SECRET}`,{
             algorithms:['HS256']
         });
         req.decode = verifyJWTResult;
-
-        const {email} = req.body;
-        const userInfoExistCheck = await db.user.findOne({where:{email},attributes:["userId"]});
+        const JWTPayloadBase64 = req.headers.authorization?.split(".")[1];
+        const payload = Buffer.from(JWTPayloadBase64! as string,'base64');
+        const result = JSON.parse(payload.toString());
+        if(result.userId!==req.user?.userId){
+            throw new Error('허용 되지 않는 사용자');
+        }
+        const userInfoExistCheck = await db.user.findOne({where:{userId:result.userId},attributes:["userId"]});
         if(userInfoExistCheck){
-            const {userId} = userInfoExistCheck;
-            if(req.user){
-                if(req.user?.userId===userId){
-                    next();
-                }else{
-                    throw new Error('허용 되지 않는 사용자');    
-                }
-            }else{
-                throw new Error('허용 되지 않는 사용자');    
-            }
+            const {email} = result;
+            req.userData = {email}
+            next();
         }else{
             throw new Error('user가 존재하지 않음!');
         }
@@ -80,6 +80,7 @@ export const checkBeforeSendEmail = async(req:Request,res:Response,next:NextFunc
 }
 
 export const isLoggedIn = (req:Request,res:Response,next:NextFunction)=>{
+    console.log(req.isAuthenticated());
     if(req.isAuthenticated()){
         next();
     }else{
@@ -88,7 +89,6 @@ export const isLoggedIn = (req:Request,res:Response,next:NextFunction)=>{
 }
 
 export const isNotLoggedIn = (req:Request,res:Response,next:NextFunction)=>{
-    console.log("isNotLoggedIn");
     if(!req.isAuthenticated()){
         next();
     }else{

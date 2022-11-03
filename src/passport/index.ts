@@ -9,15 +9,17 @@ interface UserObj  {
 
 export default function(){
     passport.serializeUser<UserModel|number>((user:UserObj,done)=>{
+        //console.log(user);
         done(null,user.userId);
     })
 
     passport.deserializeUser(async(id:number,done)=>{
         try{
-            const resultUser = await db.user.findOne({where:{id}});
+            const resultUser = await db.user.findOne({where:{userId:id}});
             console.log("deserialize user");
             done(null,resultUser)
         }catch(err){
+            console.error(err);
             done(err);
         }
         

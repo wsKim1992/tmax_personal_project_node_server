@@ -6,6 +6,8 @@ export interface User {
 
 type UserInterface = Pick<User,'userId'|'email'|'password'>;
 
+type UserTypeForSession = Pick<User,'email','userId'>;
+
 export interface Music {
     musicId: number;
     artist: string;
