@@ -3,25 +3,53 @@ import db from '../models';
 import path from 'path';
 import fs from 'fs';
 import mime from 'mime';
-import {musicUploadModule,albumCoverUploadModule,isLoggedIn} from './middleware';
+import {musicUploadModule,albumCoverUploadModule,isLoggedIn,checkProperUser} from './middleware';
 
 const RouterForMusicData = Router();
 
 /* RouterForMusicData.use(isLoggedIn); */
+RouterForMusicData.post('/deleteMusic',isLoggedIn,async(req:Request,resp:Response,next:NextFunction)=>{
+    try{
+        const {
+            musicId,url,
+            albumCoverUrl
+        } = req.body;
+        const albumCoverPath = path.join(__dirname,'../static','albumImage',`${albumCoverUrl}`);
+        const musicPath = path.join(__dirname,'../static','music',`${url}`);
 
-RouterForMusicData.get('/getMusicList',isLoggedIn,async(req:Request,resp:Response,next:NextFunction)=>{
+        console.log(albumCoverPath);
+        console.log(musicPath);
+
+        await fs.unlinkSync(albumCoverPath);
+        await fs.unlinkSync(musicPath);
+
+        await db.music.destroy({
+            where:{musicId}
+        })
+        resp.status(200).json({message:'삭제 성공!'});
+        
+    }catch(err){
+        console.error(err);
+        resp.status(500).json({message:'파일 삭제 오류 발생!'});
+    }
+})
+
+RouterForMusicData.get('/getMusicList/:limit/:pageNum',isLoggedIn,async(req:Request,resp:Response,next:NextFunction)=>{
     try{
         const {userId}=req.user!;
-        const {limit,pageNum} = req.body;
+        const {limit,pageNum} = req.params;
         console.log(`limit : ${limit}`);
         console.log(`pageNum : ${pageNum}`);
         const musicList = await db.music.findAll({
             where:{uploader:userId},
-            attributes:["musicId","artist","title","url","genre"],
+            attributes:["musicId","artist","title","url","genre","albumCoverUrl"],
             offset:Number(limit)*(Number(pageNum)-1),
-            limit
+            limit:Number(limit),
+            order: [["musicId","DESC"]],        
         })
-        resp.status(200).json({musicList});
+        const isLast = musicList.length===0?
+            true:(musicList.length%Number(limit)!==0?true:false);
+        resp.status(200).json({musicList,isLast});
     }catch(err){
         console.error(err);
         resp.status(500).json({message:'데이터 베이스 오류 발생!'});
@@ -34,10 +62,10 @@ RouterForMusicData.post('/upload_music_db',isLoggedIn,async(req:Request,resp:Res
     }
     try{
         const {userId} = req.user!;
-        const {artist,title,url,size,genre} = req.body;
-        const music = await db.music.create({artist,title,url,size,genre,uploader:userId});
+        const {artist,title,url,albumCoverUrl,size,genre} = req.body;
+        const music = await db.music.create({artist,title,url,albumCoverUrl,size,genre,uploader:userId});
         console.log(music);
-        resp.status(200).json({message:'db 추가 성공'});
+        resp.status(200).json({message:'db 추가 성공',music});
     }catch(err){
         console.error(err);
         resp.status(500).json({message:'db crud 오류!'});

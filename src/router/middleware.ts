@@ -115,7 +115,7 @@ export const musicUploadModule = multer({...musicUploadMulterOptions});
 export const checkProperUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.user) {
-            throw new Error('허용 되지 않는 사용자');
+            return res.status(401).json({ message: '허용 되지 않는 사용자!' });
         }
         const verifyJWTResult = jwt.verify(req.headers.authorization as string, `${process.env.JWT_SECRET}`, {
             algorithms: ['HS256']
@@ -125,7 +125,7 @@ export const checkProperUser = async (req: Request, res: Response, next: NextFun
         const payload = Buffer.from(JWTPayloadBase64! as string, 'base64');
         const result = JSON.parse(payload.toString());
         if (result.userId !== req.user?.userId) {
-            throw new Error('허용 되지 않는 사용자');
+            return res.status(401).json({ message: '허용 되지 않는 사용자!' });
         }
         const userInfoExistCheck = await db.user.findOne({ where: { userId: result.userId }, attributes: ["userId"] });
         if (userInfoExistCheck) {

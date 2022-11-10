@@ -48,7 +48,7 @@ app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/static', express.static(path.join(__dirname, 'static')));
+app.use('/assets', express.static(path.join(__dirname, 'static')));
 app.use('/auth', RouterForUserInfo);
 app.use('/music', RouterForMusicData);
 

@@ -31,6 +31,10 @@ export default function(sequelize:Sequelize):typeof MusicModel{
             type:DataTypes.STRING(128),
             allowNull:false,
         },
+        albumCoverUrl:{
+            type:DataTypes.STRING(128),
+            allowNull:false,
+        },
         size:{
             type:DataTypes.STRING(128),
             allowNull:false,
