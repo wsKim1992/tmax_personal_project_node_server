@@ -82,49 +82,46 @@ RouterForMusicData.post('/upload_album_cover',isLoggedIn,albumCoverUploadModule.
     res.status(200).json({message:'이미지 파일 저장 완료!',filename:req.file!.filename});
 })
 
-RouterForMusicData.get('/get_music_data', (req: Request, resp: Response) => {
-    const filePath = path.join(__dirname, '../static', '/music', 'sample.mp3');
+RouterForMusicData.get('/get_music_data/:url', (req: Request, resp: Response) => {
+    const {url} = req.params;
+    const filePath = path.join(__dirname, '../static', '/music', `${url}`);
     const contentType = mime.getType(filePath)! as string;
     const fileStat = fs.statSync(filePath);
     const fileSize = fileStat.size;
 
     const range = req.headers.range;
+    console.log(range);
     if (!range) {
-        const header = { 'Content-Type': 'audio/mpeg' };
+        const header = { 'Content-Type':'audio/mpeg' }
         resp.writeHead(200, header);
-        resp.end();
+        resp.end()
     } else {
-        const MAX_CHUNK_SIZE = 1000 * 1000;
+        const MAX_CHUNK_SIZE = 1000*1000;
         const parts = range.replace(/bytes=/, "").split("-");
         const start = parseInt(parts[0], 10);
-        const _end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-        const end = Math.min(_end, start + MAX_CHUNK_SIZE);
-        console.log(`start : ${start}`);
-        console.log(`end : ${end}`);
+        const _end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
+        const end = Math.min(_end, start + MAX_CHUNK_SIZE-1);
         let header = {};
-        if (start < end-1 && start !== fileSize) {
-            header = {
-                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-                'Accept-Ranges': 'bytes',
-                'Content-Type': contentType,
-                'Content-Length': (end - start) - 1,
-            }
-            resp.writeHead(206, header);
-            const readStream = fs.createReadStream(filePath, { start, end });
-            readStream.pipe(resp);
-        } else if(start===fileSize){
-            header = {
-                'Content-Range': `bytes ${start-1}-${end}/${fileSize}`,
-                'Accept-Ranges': 'bytes',
-                'Content-Type': contentType,
-                'Content-Length': fileSize-1,
-            }
-            resp.writeHead(200,header);
-            const readStream = fs.createReadStream(filePath,{highWaterMark:MAX_CHUNK_SIZE});
-            readStream.pipe(resp);
+        console.log(`start : ${start}`);
+        console.log(`end : ${ end}`);
+        console.log(end-start);
+        console.log(start<fileSize-1)
+        header = {
+            'Content-Range': `bytes ${0}-${fileSize-1}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Type': contentType,
+            'Content-Length':  fileSize-1,
+            'access-control-allow-credentials': "true",
+
         }
-
-
+        const readStream = fs.createReadStream(filePath, { start, end });
+        resp.writeHead(206,header);
+        readStream.pipe(resp);
+        
+        /* readStream.on("error",(err)=>{
+            console.error(err);
+            resp.status(500).json({message:"error while streaming!"});
+        }) */
     }
 
 })
