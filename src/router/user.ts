@@ -18,14 +18,14 @@ declare module 'express-session' {
 const RouterForUserInfo = Router();
 
 RouterForUserInfo.post('/check_session',isLoggedIn,checkProperUser,(req:Request,res:Response,next)=>{
-    const userData=req.userData;
-    console.log(userData)
-    delete req.userData;
-    res.status(200).json({flag:true,message:'사용자 인증 완료!',data:{...userData}});
+    console.log('check_session');
+    console.log(req.user);
+    res.status(200).json({flag:true,message:'사용자 인증 완료!',data:{userId:req.user!.userId}});
 })
 
 RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:NextFunction)=>{
     passport.authenticate('local',(error:Error|null,user:UserModel|null,info:any)=>{
+        console.log(user);
         if(!!!user||error){
             console.error(error);
             return res.status(500).json({message:info.message})
@@ -37,7 +37,7 @@ RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:Nex
                     return res.status(500).json({message:'로그인 오류 발생!'});
                 }else{
                     try{
-                        const token = await jwt.sign({userId:user.userId,email:user.email},`${process.env.JWT_TOKEN}`,{
+                        const token = await jwt.sign({userId:user.userId,email:user.email},`${process.env.JWT_SECRET}`,{
                             algorithm:'HS256',
                             expiresIn:'7d',
                             issuer:'wooseok_kim3'

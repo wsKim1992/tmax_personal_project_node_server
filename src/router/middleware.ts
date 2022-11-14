@@ -130,7 +130,7 @@ export const checkProperUser = async (req: Request, res: Response, next: NextFun
         const userInfoExistCheck = await db.user.findOne({ where: { userId: result.userId }, attributes: ["userId"] });
         if (userInfoExistCheck) {
             const { email } = result;
-            req.userData = { email }
+            console.log(`email : ${email}`);
             next();
         } else {
             throw new Error('user가 존재하지 않음!');

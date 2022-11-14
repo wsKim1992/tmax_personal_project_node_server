@@ -24,10 +24,10 @@ const app = express();
 passportConfig();
 const sessionMiddleware = session({
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     secret: `${process.env.COOKIE_SECRET}`,
     cookie: {
-        maxAge: 1000*60*5,
+        maxAge: 1000*60*60*24,
         httpOnly: true,
         secure: false,//https 일 때만..
     }
