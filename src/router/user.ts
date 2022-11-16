@@ -39,7 +39,7 @@ RouterForUserInfo.post('/login',isNotLoggedIn,(req:Request,res:Response,next:Nex
                     try{
                         const token = await jwt.sign({userId:user.userId,email:user.email},`${process.env.JWT_SECRET}`,{
                             algorithm:'HS256',
-                            expiresIn:'7d',
+                            expiresIn:'1d',
                             issuer:'wooseok_kim3'
                         })
                         //const userInfo = {id:user.userId,email:user.email};
